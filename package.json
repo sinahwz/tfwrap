@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "greet": "./bin/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,10 +13,22 @@
     "type": "git",
     "url": "git+https://github.com/sinahwz/tfwrap.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Sina Hwz",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/sinahwz/tfwrap/issues"
   },
-  "homepage": "https://github.com/sinahwz/tfwrap#readme"
+  "homepage": "https://github.com/sinahwz/tfwrap#readme",
+  "dependencies": {
+    "aws-sdk": "^2.747.0",
+    "commander": "^6.1.0",
+    "common-mods": "^1.0.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.8.1",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-standard": "^4.0.1"
+  }
 }
