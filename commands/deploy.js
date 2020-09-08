@@ -7,12 +7,13 @@ const {
 const {
   extractAwsEnvData,
   initializeAWSservices,
+  getAllProjectFunctions,
+  getProjectPrefix,
 } = require('../modules/modules');
 
+const { functionsPath, tempFolder } = require('../config');
+
 let lambda;
-const availableEnvs = [
-  'dev', 'test', 'qa',
-];
 
 const updateFunctionCode = (FunctionName, zipBuffer) => new Promise(async (resolve, reject) => {
   const params = {
@@ -29,61 +30,57 @@ const updateFunctionCode = (FunctionName, zipBuffer) => new Promise(async (resol
   });
 });
 
-const monarchFunctionsPath = './functions';
-
-module.exports.deploy = async (func, env) => {
+const deploy = async (func, functionPrefix, env) => {
   try {
-    if (env && availableEnvs.includes(env)) {
-      const envCreds = await extractAwsEnvData(env);
-      ({ lambda } = await initializeAWSservices(env, envCreds));
+    const envCreds = await extractAwsEnvData(env);
+    ({ lambda } = await initializeAWSservices(env, envCreds));
 
-      const FunctionName = `monarch_${func}`;
-      // create zip from the folder
-      const zipPath = await zipper(`${monarchFunctionsPath}/${func}`, func, './tmp');
-      const zipBuffer = await readFile(zipPath);
-      const updateRes = await updateFunctionCode(FunctionName, zipBuffer);
-      const {
-        Version,
-        LastUpdateStatus,
-      } = updateRes;
-      console.log(` - ${FunctionName} update was ${LastUpdateStatus}. Version: ${Version}`);
+    const FunctionName = `${functionPrefix}_${func}`;
+    // create zip from the folder
+    const zipPath = await zipper(`${functionsPath}/${func}`, func, tempFolder);
+    const zipBuffer = await readFile(zipPath);
+    const updateRes = await updateFunctionCode(FunctionName, zipBuffer);
+    const {
+      Version,
+      LastUpdateStatus,
+    } = updateRes;
+    console.log(` - ${FunctionName} update was ${LastUpdateStatus}. Version: ${Version}`);
 
-      await cleanPath('./tmp');
-    }
+    await cleanPath(tempFolder);
+
     return Promise.resolve();
   } catch (err) {
-    console.log('[ERR][run] ', err);
+    console.log('[ERR][deploy] ', err);
     return Promise.reject(err);
   }
 };
 
-// module.exports.deploy = async (env, lambda) => {
-//   try {
-//     const args = process.argv.slice(2);
-//     const [env, ...functions] = args;
-//     console.log(' :::: functions', functions);
-//     if (env && availableEnvs.includes(env)) {
-//       const envCreds = await extractAwsEnvData(env);
-//       ({ lambda } = await initializeAWSservices(env, envCreds));
+module.exports.deployHandler = async (lambdas, options) => {
+  try {
+    const {
+      env = 'dev',
+    } = options;
 
-//       // eslint-disable-next-line no-restricted-syntax
-//       for (const func of functions) {
-//         if (functions.includes(func)) {
-//           const FunctionName = `monarch_${functions}`;
-//           // create zip from the folder
-//           const zipPath = await zipper(`${monarchFunctionsPath}/${func}`, func, './tmp');
-//           const zipBuffer = await readFile(zipPath);
-//           await updateFunctionCode(FunctionName, zipBuffer);
-//         } else {
-//           console.log(' :::: FUNCTION INVALID', func);
-//         }
-//       }
+    const functionPrefix = await getProjectPrefix(env);
 
-//       await cleanPath('./tmp');
-//     }
-//     return Promise.resolve();
-//   } catch (err) {
-//     console.log('[ERR][run] ', err);
-//     return Promise.reject(err);
-//   }
-// };
+    let invalidFunctions;
+    const allProjectFunctions = await getAllProjectFunctions(functionsPath);
+
+    if (lambdas && !lambdas.length) {
+      // read all functins in {functionsPath}
+      lambdas = allProjectFunctions;
+    } else {
+      invalidFunctions = lambdas.filter((l) => !allProjectFunctions.includes(l));
+    }
+
+    if (invalidFunctions && invalidFunctions.length) {
+      console.log(' [ERR][invalidFunctions] Invalid functions detected: ', invalidFunctions);
+    } else {
+      lambdas.forEach((func) => {
+        deploy(func, functionPrefix, env);
+      });
+    }
+  } catch (err) {
+    console.log(' [ERR][deployHandler] ', err.errMessage);
+  }
+};

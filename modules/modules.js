@@ -4,18 +4,19 @@ const homeDir = require('os').homedir();
 const {
   commandExec,
   pathExists,
+  readDir,
+  isDirectory,
+  readJson,
 } = require('common-mods');
 
 const checkForProjectJson = async (env) => {
   try {
     let response;
-    await commandExec('pwd');
-
     const envString = env === 'dev' ? '' : `${env}.`;
 
     const projectJsonPath = `./project.${envString}json`;
     if (pathExists(projectJsonPath)) {
-      response = Promise.resolve();
+      response = Promise.resolve(projectJsonPath);
     } else {
       const err = {
         errMessage: 'Could not find the corresponding project.json',
@@ -130,10 +131,36 @@ const initializeAWSservices = async (env, envCreds) => {
   }
 };
 
+const getAllProjectFunctions = async (functionsPath) => {
+  try {
+    const contents = await readDir(functionsPath);
+    const lambdas = contents.filter((content) => isDirectory(`${functionsPath}/${content}`));
+
+    return Promise.resolve(lambdas);
+  } catch (err) {
+    console.log('[ERR][getAllProjectFunctions] ', err);
+    return Promise.reject(err);
+  }
+};
+
+const getProjectPrefix = async (env) => {
+  try {
+    const projectJsonPath = await checkForProjectJson(env);
+    const { name: functionPrefix } = readJson(projectJsonPath);
+
+    return Promise.resolve(functionPrefix);
+  } catch (err) {
+    console.log('[ERR][getProjectPrefix] ', err);
+    return Promise.reject(err);
+  }
+};
+
 module.exports = {
   getRegion,
   getCreds,
   extractAwsEnvData,
   initializeAWSservices,
   checkForProjectJson,
+  getAllProjectFunctions,
+  getProjectPrefix,
 };
