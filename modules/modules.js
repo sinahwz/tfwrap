@@ -143,9 +143,8 @@ const getAllProjectFunctions = async (functionsPath) => {
   }
 };
 
-const getProjectPrefix = async (env) => {
+const getProjectPrefix = async (projectJsonPath) => {
   try {
-    const projectJsonPath = await checkForProjectJson(env);
     const { name: functionPrefix } = readJson(projectJsonPath);
 
     return Promise.resolve(functionPrefix);

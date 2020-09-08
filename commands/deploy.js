@@ -5,10 +5,11 @@ const {
 } = require('common-mods');
 
 const {
+  checkForProjectJson,
   extractAwsEnvData,
-  initializeAWSservices,
   getAllProjectFunctions,
   getProjectPrefix,
+  initializeAWSservices,
 } = require('../modules/modules');
 
 const { functionsPath, tempFolder } = require('../config');
@@ -61,7 +62,8 @@ module.exports.deployHandler = async (lambdas, options) => {
       env = 'dev',
     } = options;
 
-    const functionPrefix = await getProjectPrefix(env);
+    const projectJsonPath = await checkForProjectJson(env);
+    const functionPrefix = await getProjectPrefix(projectJsonPath);
 
     let invalidFunctions;
     const allProjectFunctions = await getAllProjectFunctions(functionsPath);
